@@ -115,7 +115,7 @@ jobs:
             run: |
               docker run --rm -v /tmp/:/tmp/ devopseduvn/arachni:v1.4-0.5.10 bin/arachni --output-verbose --scope-include-subdomains ${{ secrets.ADDRESS_FRONTEND }}  --report-save-path=/tmp/shoeshop_fe_scan_web_report.afr > /dev/null 2>&1
               
-              docker run --rm -v /tmp/:/tmp/ devopseduvn/arachni:v1.4-0.5.10 bin/arachni_reporter /tmp/shoeshop_fe_scan_web_report.afr --reporter-html:outfile=/tmp/shoeshop_fe_scan_web_report.html.zip
+              docker run --rm -v /tmp/:/tmp/ devopseduvn/arachni:v1.4-0.5.10 bin/arachni_reporter /tmp/shoeshop_fe_scan_web_report.afr --reporter=html:outfile=/tmp/shoeshop_fe_scan_web_report.html.zip
               
               sudo chmod 777 /tmp/shoeshop_fe_scan_web_report.html.zip
               
