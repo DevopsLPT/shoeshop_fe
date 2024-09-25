@@ -1,0 +1,105 @@
+name: Build & Push CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps: 
+    - uses: actions/checkout@v4
+
+    - name: Docker build image
+      run: docker build -t ${{ secrets.DOCKERHUB_USER }}/shoeshop_fe:v1 .
+
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKERHUB_PASS }}" | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
+
+    - name: Push Docker image
+      run: docker push ${{ secrets.DOCKERHUB_USER }}/shoeshop_fe:v1
+
+  scan_source_code_CLImate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Scan with CodeClimate
+      run: |
+        docker run --rm \
+        --env CODECLIMATE_CODE="$PWD" \
+        --volume "$PWD":/code \
+        --volume /var/run/docker.sock:/var/run/docker.sock \
+        --volume /tmp/cc:/tmp/cc \
+        codeclimate/codeclimate analyze -f html > shoeshop_fe_codeclimate.html
+
+    - name: Upload HTML report as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: shoeshop_fe-report
+        path: shoeshop_fe_codeclimate.html
+
+        
+        
+  scan_source_code_Snyk:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build Docker image with Snyk scan
+      run: |
+        docker build --rm --build-arg SNYK_AUTH_TOKEN=${{ secrets.SNYK_TOKEN }} --build-arg OUTPUT_FILENAME="shoeshop_fe_snyk_report" -t snyk_scan_image -f Dockerfile-snyk .
+
+    - name: Run Docker container to perform Snyk scan
+      run: docker run --name snyk_scan snyk_scan_image
+
+    - name: Copy Snyk HTML report from Docker container
+      run: docker cp snyk_scan:/app/shoeshop_fe_snyk_report.html ./shoeshop_fe_snyk_report.html
+
+    - name: Upload Snyk HTML report as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: shoeshop_fe-snyk-report
+        path: ./shoeshop_fe_snyk_report.html
+
+        
+  scan_source_code_Trivy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Trivy scan source code
+      run: |
+        docker run --rm -v $PWD:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock \
+        aquasec/trivy fs /shoeshop_fe --severity HIGH,CRITICAL --format template \
+        --template "@contrib/html.tpl" --output ./shoeshop_fe_trivy_report.html
+
+    - name: Upload Trivy HTML report as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: shoeshop_fe-trivy-report
+        path: ./shoeshop_fe_trivy_report.html
+
+
+  scan_image_Trivy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Trivy scan image
+      run: |
+        docker run --rm -v $(pwd):/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --download-db-only
+        docker run --rm -v $(pwd):/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format template --template "@contrib/html.tpl" --output ./shoeshop_fe_trivy_image_report.html ${{ secrets.DOCKERHUB_USER }}/shoeshop_fe:v1
+    
+    - name: Upload Trivy image scan HTML report as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: shoeshop_fe-trivy-image-report
+        path: ./shoeshop_fe_trivy_image_report.html
