@@ -106,3 +106,21 @@ jobs:
       with:
         name: shoeshop_fe-trivy-image-report
         path: shoeshop_fe_trivy_image_report.html
+
+  security_scan_website:
+      runs-on: ubuntu-latest
+      
+      steps:
+          - name: Arachni scan website
+            run: |
+              docker run --rm -v /tmp/:/tmp/ devopseduvn/arachni:v1.4-0.5.10 bin/arachni --output-verbose --scope-include-subdomains $ADDRESS_FRONTEND
+              report-save-path=/tmp/shoeshop_fe_scan_web_report.afr > /dev/null 2>&1
+              reporter-html:outfile=/tmp/shoeshop_fe_scan_web_report.html.zip
+              sudo chmod 777 /tmp/shoeshop_fe_scan_web_report.html.zip
+              cp /tmp/shoeshop_fe_scan_web_report.html.zip .
+              
+          - name: Upload Arachni scan web report as an artifact
+            uses: actions/upload-artifact@v3
+            with:
+              name: shoeshop_fe-arachni-scan-web-report
+              path: shoeshop_fe_scan_web_report.html.zip
