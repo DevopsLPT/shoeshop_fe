@@ -78,13 +78,16 @@ jobs:
       run: |
         docker run --rm -v $PWD:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock \
         aquasec/trivy fs /shoeshop_fe --severity HIGH,CRITICAL --format template \
-        --template "@contrib/html.tpl" --output ./shoeshop_fe_trivy_report.html
+        --template "@contrib/html.tpl" --output /shoeshop_fe/shoeshop_fe_trivy_report.html
+
+    - name: where
+      run: pwd && ls
 
     - name: Upload Trivy HTML report as an artifact
       uses: actions/upload-artifact@v3
       with:
         name: shoeshop_fe-trivy-report
-        path: ./shoeshop_fe_trivy_report.html
+        path: shoeshop_fe_trivy_report.html
 
 
   scan_image_Trivy:
