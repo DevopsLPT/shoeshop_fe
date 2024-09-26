@@ -137,6 +137,7 @@ jobs:
       
     - name: Set permissions for performance test script
       run: |
+        cd shoeshop_fe
         chmod -R 777 ./performance_test_script/
 
     - name: Run performance test
