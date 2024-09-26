@@ -108,7 +108,7 @@ jobs:
         path: shoeshop_fe_trivy_image_report.html
 
   security_scan_website:
-      runs-on: ubuntu-latest
+      runs-on:  self-hosted
       
       steps:
           - name: Arachni scan website
