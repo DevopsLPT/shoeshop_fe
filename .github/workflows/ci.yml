@@ -126,3 +126,29 @@ jobs:
             with:
               name: shoeshop_fe-arachni-scan-web-report
               path: shoeshop_fe_scan_web_report.html.zip
+
+  performance_test:
+   runs-on: ubuntu-latest
+
+   steps: 
+    - name: Install dependencies
+      run: |
+        apt install jq -y
+      
+    - name: Set permissions for performance test script
+      run: |
+        chmod -R 777 ./performance_test_script/
+
+    - name: Run performance test
+      run: |
+        docker run --rm -v $PWD/performance_test_script:/performance_test_script loadimpact/k6 run -e RESULTS_PATH=/performance_test_script --summary-export=performance_test_script/summary_perf.json /performance_test_script/smoke-test.js
+
+    - name: Generate CSV report from performance test results
+      run: |
+        cat ./performance_test_script/summary_perf.json | jq -r '["metric", "avg", "min", "med", "max", "p(90)", "p(95)"], (.metrics | to_entries[] | [.key, .value.avg, .value.min, .value.med, .value.max, .value["p(90)"], .value["p(95)"]]) | @csv' > shoeshop_fe_test_performance_report.csv
+
+    - name: Upload Test performance CSV report as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: shoeshop_fe_test_performance_report
+        path: shoeshop_fe_test_performance_report.csv
