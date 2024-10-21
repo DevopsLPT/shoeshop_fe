@@ -1,0 +1,29 @@
+name: Build & Push CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  performance_test:
+   runs-on: ubuntu-latest
+
+   steps: 
+    - uses: actions/checkout@v4
+      
+    - name: Set permissions for performance test script
+      run: |
+        cd shoeshop_fe
+        chmod -R 777 ./performance_test_script/
+
+    - name: Run performance test
+      run: |
+        docker run --rm -v $PWD/performance_test_script:/performance_test_script loadimpact/k6 run /performance_test_script/smoke-test.js
+
+    - name: Upload Test performance CSV report as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: shoeshop_fe_test_performance_report
+        path: $PWD/performance_test_script/summary.html
