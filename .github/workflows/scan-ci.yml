@@ -59,7 +59,7 @@ jobs:
 
     steps:
     - name: Docker build image
-      run: docker build --build-arg REACT_APP_BASE_URL=${{secret.BE_API}} -t $IMAGE_NAME .
+      run: docker build --build-arg REACT_APP_BASE_URL=${{secrets.BE_API}} -t $IMAGE_NAME .
 
     - name: Trivy scan image
       run: |
