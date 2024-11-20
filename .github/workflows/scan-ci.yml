@@ -19,7 +19,7 @@ jobs:
         run: docker run --rm -v $PWD:/usr/src sonarsource/sonar-scanner-cli:latest sonar-scanner -Dsonar.host.url=${{secrets.SONAR_HOST}} -Dsonar.token=${{secrets.SONAR_TOKEN}} -Dsonar.projectKey=${{secrets.SONAR_PROJECTKEY}}
 
   Snyk_Composition_Analysis:
-    runs-on: shoeshop
+    runs-on: self-hosted
 
     env:
       REPORT_NAME: shoeshop_fe_snyk_report
@@ -51,7 +51,7 @@ jobs:
         docker rmi -f $SNYK_IMAGE_NAME || true
 
   Trivy_Image_Scan:
-    runs-on: shoeshop
+    runs-on: self-hosted
 
     env:
       REPORT_NAME: shoeshop_fe_trivy_report.html

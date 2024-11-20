@@ -1,10 +1,11 @@
 FROM node:alpine AS build
 WORKDIR /app
+
 ARG REACT_APP_BASE_URL
 ENV REACT_APP_BASE_URL=$REACT_APP_BASE_URL
-COPY package.json .
-RUN npm install --force
+
 COPY . .
+RUN npm install --force
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:alpine3.19-perl AS deploy
