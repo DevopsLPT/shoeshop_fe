@@ -17,7 +17,7 @@ jobs:
           
       - name: SonarQube Scan 
         run: docker run --rm -v $PWD:/usr/src sonarsource/sonar-scanner-cli:latest sonar-scanner -Dsonar.host.url=${{secrets.SONAR_HOST}} -Dsonar.token=${{secrets.SONAR_TOKEN}} -Dsonar.projectKey=${{secrets.SONAR_PROJECTKEY}}
-sqp_7e2dd7894964895106f502a45c6c9513585185f2
+
   Snyk_Composition_Analysis:
     runs-on: shoeshop
 
