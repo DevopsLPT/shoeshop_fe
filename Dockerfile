@@ -5,7 +5,7 @@ ARG REACT_APP_BASE_URL
 ENV REACT_APP_BASE_URL=$REACT_APP_BASE_URL
 
 COPY . .
-RUN npm install --force
+RUN npm install
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:alpine3.19-perl AS deploy

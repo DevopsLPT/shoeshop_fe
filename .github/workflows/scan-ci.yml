@@ -76,15 +76,15 @@ jobs:
       run: docker rmi -f $IMAGE_NAME || true
 
 
-#  Push_Image_Internal:
-#    runs-on: shoeshop
+  Push_Image_Internal:
+    runs-on: shoeshop
 
 #    env: 
 #      IMAGE_NAME: ${{ secrets.DOCKERHUB_USER }}/shoeshop_fe:v1
 
-#    steps: 
-#    - name: Checkout source code
-#      uses: actions/checkout@v4
+    steps: 
+    - name: Checkout source code
+      uses: actions/checkout@v4
 
 #    - name: Docker build image
 #      run: docker build -t $IMAGE_NAME .
@@ -95,22 +95,22 @@ jobs:
 #    - name: Push Docker image
 #      run: docker push $IMAGE_NAME
 
-#    - name: Configure AWS Credentials
-#      uses: aws-actions/configure-aws-credentials@v1
-#      with:
-#        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#        aws-region: ${{ secrets.REGION }}
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.REGION }}
 
-#    - name: Login to Amazon ECR
-#      id: login-ecr
-#      uses: aws-actions/amazon-ecr-login@v1
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
 
-#    - name: Build, tag, and push image to Amazon ECR
-#      env:
-#        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#        ECR_REPOSITORY: ${{secrets.ECR_REPOSITORY}}
-#        IMAGE_TAG: 'v1'
-#      run: |
-#        docker build --build-arg REACT_APP_BASE_URL=${{BE_API}} -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-#        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+    - name: Build, tag, and push image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{secrets.ECR_REPOSITORY}}
+        IMAGE_TAG: 'v1'
+      run: |
+        docker build --build-arg REACT_APP_BASE_URL=${{BE_API}} -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG

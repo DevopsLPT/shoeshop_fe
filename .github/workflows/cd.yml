@@ -5,7 +5,7 @@ on:
     workflows: ["Scan CI"]
     types: 
       - completed
-        
+
 jobs:
   deploy:
     runs-on: shoeshop
