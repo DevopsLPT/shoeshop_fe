@@ -57,6 +57,8 @@ jobs:
       IMAGE_NAME: shoeshop_fe:v1
 
     steps:
+    - uses: actions/checkout@v4
+
     - name: Docker build image
       run: docker build --build-arg REACT_APP_BASE_URL=${{secrets.BE_API}} -t $IMAGE_NAME .
 
