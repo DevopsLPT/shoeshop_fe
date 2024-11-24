@@ -10,7 +10,6 @@ jobs:
   deploy:
     runs-on: shoeshop
     env:
-      ECR_IMAGE_NAME: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:v1
       CONTAINER_NAME: 'shoeshop_fe'
 
     steps:
@@ -32,6 +31,8 @@ jobs:
         run: docker rmi $ECR_IMAGE_NAME || true
 
       - name: Docker pull
+        env:
+          ECR_IMAGE_NAME: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
         run: docker pull $ECR_IMAGE_NAME
         
       - name: Run container
