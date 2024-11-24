@@ -36,4 +36,6 @@ jobs:
         run: docker pull $ECR_IMAGE_NAME
         
       - name: Run container
+        env:
+          ECR_IMAGE_NAME: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
         run: docker run --name $CONTAINER_NAME -dp 3000:3000 $ECR_IMAGE_NAME
