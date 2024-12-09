@@ -1,4 +1,4 @@
-# Getting Started with Create Shoes shop 1
+# Getting Started with Create Shoes shop
 
 This project was bootstrapped with [Create Shoes shop](https://github.com/facebook/create-react-app).
 
