@@ -36,7 +36,9 @@ jobs:
       run: docker run --name $SNYK_CONTAINER_NAME $SNYK_IMAGE_NAME
 
     - name: Copy Snyk HTML report from Docker container
-      run: docker cp $SNYK_CONTAINER_NAME:/app/$REPORT_NAME.html ./$REPORT_NAME.html
+      run: |
+        docker cp $SNYK_CONTAINER_NAME:/app/$REPORT_NAME.html ./$REPORT_NAME.html
+        ls
 
     - name: Upload Snyk HTML report as an artifact
       uses: actions/upload-artifact@v3
