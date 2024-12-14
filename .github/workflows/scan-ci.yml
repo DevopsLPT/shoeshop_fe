@@ -44,7 +44,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: shoeshop_fe-snyk-report
-        path: /home/runner/work/shoeshop_fe/shoeshop_fe/$REPORT_NAME.html
+        path: ./shoeshop_fe/$REPORT_NAME.html
 
     - name: Clean up Docker resources
       run: |
