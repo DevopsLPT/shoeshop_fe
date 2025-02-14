@@ -29,7 +29,7 @@ jobs:
 
   Trivy_Image_Scan:
     runs-on: build
-
+    needs: Build_Docker_Image
     env:
       REPORT_NAME: shoeshop_fe_trivy_report
       IMAGE_NAME: shoeshop_fe:v1
@@ -53,8 +53,8 @@ jobs:
 
 
   Push_Image_Internal:
-    runs-on: ubuntu-latest
-
+    runs-on: build
+    needs: Trivy_Image_Scan
     steps: 
     - name: Checkout source code
       uses: actions/checkout@v4
@@ -69,7 +69,7 @@ jobs:
       run: docker push $DOCKER_REGISTRY/$DOCKER_REPO:$IMAGE_TAG
 
   Clean_Up:
-    runs-on: ubuntu-latest
+    runs-on: build
     needs: Push_Image_Internal
     steps:
       - name: Log out from Docker Registry
