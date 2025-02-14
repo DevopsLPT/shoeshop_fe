@@ -83,3 +83,8 @@ jobs:
 
       - name: Remove Docker Image
         run: docker rmi -f ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}} || true
+
+      - name: Clean up workspace
+        if: always()
+        run: |
+          echo $GITHUB_WORKSPACE
