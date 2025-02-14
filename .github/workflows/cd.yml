@@ -8,34 +8,22 @@ on:
 
 jobs:
   deploy:
-    runs-on: shoeshop
+    runs-on: build
     env:
-      CONTAINER_NAME: 'shoeshop_fe'
+      CONTAINER_NAME: shoeshop_fe
+      IMAGE_OLD_TAG: latest
+      IMAGE_NEW_TAG: latest
+      IMAGE_NAME: ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_REPO }}
 
     steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
       - name: Delete old docker container
-        run: docker rm -f $CONTAINER_NAME || true
+        run: docker rm -f ${{ env.CONTAINER_NAME }} || true
         
       - name: Delete old image
-        run: docker rmi $ECR_IMAGE_NAME || true
+        run: docker rmi ${{ env.IMAGE_NAME }}:${{ env.IMAGE_OLD_TAG }} || true
 
       - name: Docker pull
-        env:
-          ECR_IMAGE_NAME: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
-        run: docker pull $ECR_IMAGE_NAME
+        run: docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_NEW_TAG }} 
         
       - name: Run container
-        env:
-          ECR_IMAGE_NAME: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
-        run: docker run --name $CONTAINER_NAME -dp 3000:3000 $ECR_IMAGE_NAME
+        run: docker run --name ${{ env.CONTAINER_NAME }} -dp 3000:3000 ${{ env.IMAGE_NAME }}:${{ env.IMAGE_NEW_TAG }} 
