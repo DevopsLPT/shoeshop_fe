@@ -49,7 +49,7 @@ jobs:
           docker run --rm -v $PWD:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format template --template "@contrib/html.tpl" --output /shoeshop_fe/${{env.REPORT_NAME}}.html ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
     
       - name: Upload Trivy image scan HTML report as an artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: shoeshop_fe_trivy_report
           path: ./${{ env.REPORT_NAME }}.html
