@@ -19,61 +19,67 @@ jobs:
 
   Build_Docker_Image:
     runs-on: build
+    env: 
+      IMAGE_TAG: latest
+      IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{env.IMAGE_TAG}}
 
     steps:
     - name: Checkout source code
       uses: actions/checkout@v4
 
     - name: Docker build image
-      run: docker build --build-arg REACT_APP_BASE_URL=${{secrets.BE_API}} -t $DOCKER_REGISTRY/$DOCKER_REPO:$IMAGE_TAG .
+      run: docker build --build-arg REACT_APP_BASE_URL=${{secrets.BE_API}} -t ${{env.IMAGE_NAME}} .
 
   Trivy_Image_Scan:
     runs-on: build
     needs: Build_Docker_Image
     env:
       REPORT_NAME: shoeshop_fe_trivy_report
-      IMAGE_NAME: shoeshop_fe:v1
+      IMAGE_TAG: latest
+      IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{env.IMAGE_TAG}}
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
 
-    - name: Trivy scan image
-      run: |
-        docker run --rm -v $PWD:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --download-db-only
-        docker run --rm -v $PWD:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format template --template "@contrib/html.tpl" --output /shoeshop_fe/$REPORT_NAME.html $DOCKER_REGISTRY/$DOCKER_REPO:$IMAGE_TAG
+      - name: Trivy scan image
+        run: |
+          docker run --rm -v $PWD:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --download-db-only
+          docker run --rm -v $PWD:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format template --template "@contrib/html.tpl" --output /shoeshop_fe/${{env.REPORT_NAME}}.html ${{env.IMAGE_NAME}}
     
-    - name: Upload Trivy image scan HTML report as an artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: shoeshop_fe_trivy_report
-        path: ./${{ env.REPORT_NAME }}.html
-
-    - name: Clean up Docker resources
-      run: docker rmi -f $IMAGE_NAME || true
+      - name: Upload Trivy image scan HTML report as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: shoeshop_fe_trivy_report
+          path: ./${{ env.REPORT_NAME }}.html
 
 
   Push_Image_Internal:
     runs-on: build
     needs: Trivy_Image_Scan
-    steps: 
-    - name: Checkout source code
-      uses: actions/checkout@v4
+    env:
+      IMAGE_TAG: latest
+      IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{env.IMAGE_TAG}}
+    steps:
+      - name: Log in to Docker Registry
+        run: echo "${{ secrets.REGISTRY_PASS }}" | docker login ${{secrets.DOCKER_REGISTRY}} -u "${{ secrets.REGISTRY_USER }}" --password-stdin
 
-    - name: Docker build image
-      run: docker build --build-arg REACT_APP_BASE_URL=${{secrets.BE_API}} -t $DOCKER_REGISTRY/$DOCKER_REPO:$IMAGE_TAG .
-
-    - name: Log in to Docker Registry
-      run: echo "${{ secrets.REGISTRY_PASS }}" | docker login harbor.lptdevops.website -u "${{ secrets.REGISTRY_USER }}" --password-stdin
-
-    - name: Push Docker image
-      run: docker push $DOCKER_REGISTRY/$DOCKER_REPO:$IMAGE_TAG
+      - name: Push Docker image
+        run: docker push ${{env.IMAGE_NAME}}
 
   Clean_Up:
     runs-on: build
     needs: Push_Image_Internal
+    env:
+      IMAGE_TAG: latest
+      IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{env.IMAGE_TAG}}
     steps:
+      - name: Cleanup Trivy DB
+        run: rm -rf ~/.cache/trivy
+
       - name: Log out from Docker Registry
-        run: docker logout harbor.lptdevops.website || true
+        run: docker logout ${{secrets.DOCKER_REGISTRY}} || true
 
       - name: Remove Docker Image
-        run: docker rmi -f $DOCKER_REGISTRY/$DOCKER_REPO:$IMAGE_TAG || true
+        run: docker rmi -f ${{env.IMAGE_NAME}} || true
