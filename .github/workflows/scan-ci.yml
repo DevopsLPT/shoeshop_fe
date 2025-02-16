@@ -7,8 +7,25 @@ on:
     branches: [ "main" ]
 
 jobs:
+
+  Get_Credentials:
+    runs-on: build
+    outputs:
+      REGISTRY_USER: ${{ steps.get-docker-credentials.outputs.REGISTRY_USER }}
+      REGISTRY_PASS: ${{ steps.get-docker-credentials.outputs.REGISTRY_PASS }}
+      DOCKER_REGISTRY: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY }}
+    steps:
+      - name: Get Docker Registry Credentials
+        id: get-docker-credentials
+        run: |
+          SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.DOCKER_REGISTRY_CREDENTIAL_PATH}} | jq -r '.data.data')
+          echo "REGISTRY_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_ENV
+          echo "REGISTRY_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_ENV
+          echo "DOCKER_REGISTRY=$(echo $SECRETS | jq -r '.url')" >> $GITHUB_ENV
+
   Sonarqube_Static_Code_Analysis:
     runs-on: ubuntu-latest
+    needs: Get_Credentials
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,9 +36,10 @@ jobs:
 
   Build_Docker_Image:
     runs-on: build
+    needs: Get_Credentials
     env: 
       IMAGE_TAG: latest
-      IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
+      IMAGE_NAME: ${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
 
     steps:
     - name: Checkout source code
@@ -36,7 +54,7 @@ jobs:
     env:
       REPORT_NAME: shoeshop_fe_trivy_report_$(date +'%Y%m%d')
       IMAGE_TAG: latest
-      IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
+      IMAGE_NAME: ${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
 
     steps:
       - uses: actions/checkout@v4
@@ -58,19 +76,15 @@ jobs:
         run: curl -X PUT -u ${{secrets.JFROG_USER}}:${{secrets.JFROG_PASSWORD}} -T $GITHUB_WORKSPACE/${{ env.REPORT_NAME }}.html ${{secrets.JFROG_PATH}}/${{ env.REPORT_NAME }}.html
 
   Push_Image_Internal:
-    runs-on: build
+    runs-on: build  
     needs: Trivy_Image_Scan
     env:
+      REGISTRY_USER: ${{needs.Get_Credentials.outputs.REGISTRY_USER}}
+      REGISTRY_PASS: ${{needs.Get_Credentials.outputs.REGISTRY_PASS}}
+      DOCKER_REGISTRY: ${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}
       IMAGE_TAG: latest
-      IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
+      IMAGE_NAME: ${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
     steps:
-      - name: Get Docker Registry Credential
-        run: |
-          SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.CREADENTIAL_PATH}} | jq -r '.data.data')
-          echo "REGISTRY_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_ENV
-          echo "REGISTRY_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_ENV
-          echo "DOCKER_REGISTRY=$(echo $SECRETS | jq -r '.url')" >> $GITHUB_ENV
-
       - name: Log in to Docker Registry
         run: echo "${{env.REGISTRY_PASS}}" | docker login ${{env.DOCKER_REGISTRY}} -u "${{env.REGISTRY_USER}}" --password-stdin
 
@@ -82,7 +96,8 @@ jobs:
     needs: Push_Image_Internal
     env:
       IMAGE_TAG: latest
-      IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
+      DOCKER_REGISTRY: ${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}
+      IMAGE_NAME: ${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
     steps:
       - name: Cleanup Trivy DB
         run: rm -rf ~/.cache/trivy
