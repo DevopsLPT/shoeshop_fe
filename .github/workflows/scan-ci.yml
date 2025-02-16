@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0  
           
       - name: SonarQube Scan 
-        run: docker run --rm -v $$GITHUB_WORKSPACE:/usr/src sonarsource/sonar-scanner-cli:latest sonar-scanner -Dsonar.host.url=${{secrets.SONAR_HOST}} -Dsonar.token=${{secrets.SONAR_TOKEN}} -Dsonar.projectKey=${{secrets.SONAR_PROJECTKEY}}
+        run: docker run --rm -v $GITHUB_WORKSPACE:/usr/src sonarsource/sonar-scanner-cli:latest sonar-scanner -Dsonar.host.url=${{secrets.SONAR_HOST}} -Dsonar.token=${{secrets.SONAR_TOKEN}} -Dsonar.projectKey=${{secrets.SONAR_PROJECTKEY}}
 
   Build_Docker_Image:
     runs-on: build
@@ -64,8 +64,15 @@ jobs:
       IMAGE_TAG: latest
       IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
     steps:
+      - name: Get Docker Registry Credential
+        run: |
+        SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.CREADENTIAL_PATH}} | jq -r '.data.data')
+        echo "REGISTRY_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_ENV
+        echo "REGISTRY_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_ENV
+        echo "DOCKER_REGISTRY=$(echo $SECRETS | jq -r '.url')" >> $GITHUB_ENV
+
       - name: Log in to Docker Registry
-        run: echo "${{ secrets.REGISTRY_PASS }}" | docker login ${{secrets.DOCKER_REGISTRY}} -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+        run: echo "${{env.REGISTRY_PASS}}" | docker login ${{env.DOCKER_REGISTRY} -u "${{env.REGISTRY_USER}}" --password-stdin
 
       - name: Push Docker image
         run: docker push ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
