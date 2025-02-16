@@ -55,9 +55,7 @@ jobs:
           path: $GITHUB_WORKSPACE/${{ env.REPORT_NAME }}.html
       
       - name: Upload Trivy image scan HTML report as an artifact to JFrog
-        run: |
-        pwd
-        curl -X PUT -u ${{secrets.JFROG_USER}}:${{secrets.JFROG_PASSWORD}} -T $GITHUB_WORKSPACE/${{ env.REPORT_NAME }}.html ${{secrets.JFROG_PATH}}/${{ env.REPORT_NAME }}.html
+        run: curl -X PUT -u ${{secrets.JFROG_USER}}:${{secrets.JFROG_PASSWORD}} -T $GITHUB_WORKSPACE/${{ env.REPORT_NAME }}.html ${{secrets.JFROG_PATH}}/${{ env.REPORT_NAME }}.html
 
   Push_Image_Internal:
     runs-on: build
