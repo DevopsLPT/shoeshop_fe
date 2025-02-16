@@ -7,15 +7,43 @@ on:
       - completed
 
 jobs:
+  Get_Credentials:
+    runs-on: build
+    outputs:
+      DOCKER_REGISTRY_USER: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY_USER }}
+      DOCKER_REGISTRY_PASS: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY_PASS }}
+      DOCKER_REGISTRY: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY }}
+      DOCKER_REPO: ${{ steps.get-docker-credentials.outputs.DOCKER_REPO }}
+
+    steps:
+      - name: Get Docker Registry Credentials
+        id: get-docker-credentials
+        run: |
+          SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.DOCKER_REGISTRY_CREDENTIAL_PATH}} | jq -r '.data.data')
+          echo "DOCKER_REGISTRY_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_OUTPUT
+          echo "DOCKER_REGISTRY_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_OUTPUT
+          echo "DOCKER_REGISTRY=$(echo $SECRETS | jq -r '.url')" >> $GITHUB_OUTPUT
+          echo "DOCKER_REPO=$(echo $SECRETS | jq -r '.fe_repo')" >> $GITHUB_OUTPUT
+
+
   deploy:
     runs-on: build
     env:
       CONTAINER_NAME: shoeshop_fe
       IMAGE_OLD_TAG: latest
       IMAGE_NEW_TAG: latest
-      IMAGE_NAME: ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_REPO }}
-
+    needs: Get_Credentials
     steps:
+      - name: Set env
+        run: |
+          echo "IMAGE_NAME=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}/${{env.DOCKER_REPO}}" >> $GITHUB_ENV
+
+          echo "DOCKER_REGISTRY_USER=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY_USER}}" >> $GITHUB_ENV
+
+          echo "DOCKER_REGISTRY_PASS=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY_PASS}}" >> $GITHUB_ENV
+
+          echo "DOCKER_REGISTRY=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}" >> $GITHUB_ENV
+
       - name: Delete old docker container
         run: docker rm -f ${{ env.CONTAINER_NAME }} || true
         
@@ -23,7 +51,7 @@ jobs:
         run: docker rmi ${{ env.IMAGE_NAME }}:${{ env.IMAGE_OLD_TAG }} || true
 
       - name: Log in to Docker Registry
-        run: echo "${{ secrets.REGISTRY_PASS }}" | docker login ${{secrets.DOCKER_REGISTRY}} -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+        run: echo "${{ env.DOCKER_REGISTRY_PASS }}" | docker login ${{env.DOCKER_REGISTRY}} -u "${{ env.DOCKER_REGISTRY_USER }}" --password-stdin
 
       - name: Docker pull
         run: docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_NEW_TAG }} 
