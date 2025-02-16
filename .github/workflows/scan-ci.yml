@@ -34,7 +34,7 @@ jobs:
     runs-on: build
     needs: Build_Docker_Image
     env:
-      REPORT_NAME: shoeshop_fe_trivy_report_$(date +'%Y%m%d-%H%M%S')
+      REPORT_NAME: shoeshop_fe_trivy_report_$(date +'%Y%m%d')
       IMAGE_TAG: latest
       IMAGE_NAME: ${{secrets.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}
 
