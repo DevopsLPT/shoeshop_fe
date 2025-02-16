@@ -11,10 +11,14 @@ jobs:
   Get_Credentials:
     runs-on: build
     outputs:
-      DOCKER_REGISTRY_USER: ${{ steps.get-docker-credentials.outputs.REGISTRY_USER }}
-      DOCKER_REGISTRY_PASS: ${{ steps.get-docker-credentials.outputs.REGISTRY_PASS }}
+      DOCKER_REGISTRY_USER: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY_USER }}
+      DOCKER_REGISTRY_PASS: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY_PASS }}
       DOCKER_REGISTRY: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY }}
       IMAGE_TAG: latest
+
+      JFROG_USER: ${{ steps.get-jfrog-credentials.outputs.JFROG_USER }}
+      JFROG_PASS: ${{ steps.get-jfrog-credentials.outputs.JFROG_PASS }}
+      JFROG_PATH: ${{ steps.get-jfrog-credentials.outputs.JFROG_PATH }}
 
     steps:
       - name: Get Docker Registry Credentials
@@ -24,6 +28,14 @@ jobs:
           echo "DOCKER_REGISTRY_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_OUTPUT
           echo "DOCKER_REGISTRY_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_OUTPUT
           echo "DOCKER_REGISTRY=$(echo $SECRETS | jq -r '.url')" >> $GITHUB_OUTPUT
+
+      - name: Get JFrog Credentials
+        id: get-jfrog-credentials
+        run: |
+          SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.JFROG_CREDENTIAL_PATH}} | jq -r '.data.data')
+          echo "JFROG_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_OUTPUT
+          echo "JFROG_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_OUTPUT
+          echo "JFROG_PATH=$(echo $SECRETS | jq -r '.path')" >> $GITHUB_OUTPUT
 
   Sonarqube_Static_Code_Analysis:
     runs-on: ubuntu-latest
@@ -63,6 +75,12 @@ jobs:
 
           echo "REPORT_NAME=shoeshop_fe_trivy_report_$(date +'%Y%m%d')" >> $GITHUB_ENV
 
+          echo "JFROG_USER=${{needs.Get_Credentials.outputs.JFROG_USER}}" >> $GITHUB_ENV
+
+          echo "JFROG_PASS=${{needs.Get_Credentials.outputs.JFROG_PASS}}" >> $GITHUB_ENV
+
+          echo "JFROG_PATH=${{needs.Get_Credentials.outputs.JFROG_PATH}}" >> $GITHUB_ENV
+
       - name: Trivy scan image
         run: |
           docker run --rm -v $GITHUB_WORKSPACE:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --download-db-only
@@ -76,7 +94,7 @@ jobs:
           path: $GITHUB_WORKSPACE/${{ env.REPORT_NAME }}.html
       
       - name: Upload Trivy image scan HTML report as an artifact to JFrog
-        run: curl -X PUT -u ${{secrets.JFROG_USER}}:${{secrets.JFROG_PASSWORD}} -T $GITHUB_WORKSPACE/${{ env.REPORT_NAME }}.html ${{secrets.JFROG_PATH}}/${{ env.REPORT_NAME }}.html
+        run: curl -X PUT -u ${{env.JFROG_USER}}:${{env.JFROG_PASS}} -T $GITHUB_WORKSPACE/${{ env.REPORT_NAME }}.html ${{env.JFROG_PATH}}/${{ env.REPORT_NAME }}.html
 
   Push_Image_Internal:
     runs-on: build  
