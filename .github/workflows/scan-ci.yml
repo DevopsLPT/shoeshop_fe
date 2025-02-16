@@ -66,10 +66,10 @@ jobs:
     steps:
       - name: Get Docker Registry Credential
         run: |
-        SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.CREADENTIAL_PATH}} | jq -r '.data.data')
-        echo "REGISTRY_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_ENV
-        echo "REGISTRY_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_ENV
-        echo "DOCKER_REGISTRY=$(echo $SECRETS | jq -r '.url')" >> $GITHUB_ENV
+          SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.CREADENTIAL_PATH}} | jq -r '.data.data')
+          echo "REGISTRY_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_ENV
+          echo "REGISTRY_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_ENV
+          echo "DOCKER_REGISTRY=$(echo $SECRETS | jq -r '.url')" >> $GITHUB_ENV
 
       - name: Log in to Docker Registry
         run: echo "${{env.REGISTRY_PASS}}" | docker login ${{env.DOCKER_REGISTRY} -u "${{env.REGISTRY_USER}}" --password-stdin
