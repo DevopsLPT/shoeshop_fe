@@ -72,7 +72,7 @@ jobs:
           echo "DOCKER_REGISTRY=$(echo $SECRETS | jq -r '.url')" >> $GITHUB_ENV
 
       - name: Log in to Docker Registry
-        run: echo "${{env.REGISTRY_PASS}}" | docker login ${{env.DOCKER_REGISTRY} -u "${{env.REGISTRY_USER}}" --password-stdin
+        run: echo "${{env.REGISTRY_PASS}}" | docker login ${{env.DOCKER_REGISTRY}} -u "${{env.REGISTRY_USER}}" --password-stdin
 
       - name: Push Docker image
         run: docker push ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
