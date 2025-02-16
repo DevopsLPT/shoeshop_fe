@@ -11,8 +11,8 @@ jobs:
   Get_Credentials:
     runs-on: build
     outputs:
-      REGISTRY_USER: ${{ steps.get-docker-credentials.outputs.REGISTRY_USER }}
-      REGISTRY_PASS: ${{ steps.get-docker-credentials.outputs.REGISTRY_PASS }}
+      DOCKER_REGISTRY_USER: ${{ steps.get-docker-credentials.outputs.REGISTRY_USER }}
+      DOCKER_REGISTRY_PASS: ${{ steps.get-docker-credentials.outputs.REGISTRY_PASS }}
       DOCKER_REGISTRY: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY }}
       IMAGE_TAG: latest
 
@@ -21,8 +21,8 @@ jobs:
         id: get-docker-credentials
         run: |
           SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.DOCKER_REGISTRY_CREDENTIAL_PATH}} | jq -r '.data.data')
-          echo "REGISTRY_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_OUTPUT
-          echo "REGISTRY_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_OUTPUT
+          echo "DOCKER_REGISTRY_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_OUTPUT
+          echo "DOCKER_REGISTRY_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_OUTPUT
           echo "DOCKER_REGISTRY=$(echo $SECRETS | jq -r '.url')" >> $GITHUB_OUTPUT
 
   Sonarqube_Static_Code_Analysis:
@@ -52,20 +52,22 @@ jobs:
   Trivy_Image_Scan:
     runs-on: build
     needs: Build_Docker_Image
-    env:
-      REPORT_NAME: shoeshop_fe_trivy_report_$(date +'%Y%m%d')
-      IMAGE_TAG: latest
-      DOCKER_REGISTRY: ${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 
 
+      - name: Set env
+        run: |
+          echo "DOCKER_IMAGE=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{needs.Get_Credentials.outputs.IMAGE_TAG}}" >> $GITHUB_ENV
+
+          echo "REPORT_NAME=shoeshop_fe_trivy_report_$(date +'%Y%m%d')" >> $GITHUB_ENV
+
       - name: Trivy scan image
         run: |
           docker run --rm -v $GITHUB_WORKSPACE:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --download-db-only
-          docker run --rm -v $GITHUB_WORKSPACE:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format template --template "@contrib/html.tpl" --output /shoeshop_fe/${{env.REPORT_NAME}}.html ${{env.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{env.IMAGE_TAG}}
+
+          docker run --rm -v $GITHUB_WORKSPACE:/shoeshop_fe -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format template --template "@contrib/html.tpl" --output /shoeshop_fe/${{env.REPORT_NAME}}.html ${{env.DOCKER_IMAGE}}
     
       - name: Upload Trivy image scan HTML report as an artifact to GIthub
         uses: actions/upload-artifact@v4
@@ -79,25 +81,33 @@ jobs:
   Push_Image_Internal:
     runs-on: build  
     needs: Trivy_Image_Scan
-    env:
-      REGISTRY_USER: ${{needs.Get_Credentials.outputs.REGISTRY_USER}}
-      REGISTRY_PASS: ${{needs.Get_Credentials.outputs.REGISTRY_PASS}}
-      DOCKER_REGISTRY: ${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}
-      IMAGE_TAG: latest
     steps:
+      - name: Set env
+        run: |
+          echo "DOCKER_IMAGE=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{needs.Get_Credentials.outputs.IMAGE_TAG}}" >> $GITHUB_ENV
+
+          echo "DOCKER_REGISTRY_USER=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY_USER}}" >> $GITHUB_ENV
+
+          echo "DOCKER_REGISTRY_PASS=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY_PASS}}" >> $GITHUB_ENV
+
+          echo "DOCKER_REGISTRY=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}" >> $GITHUB_ENV
+
       - name: Log in to Docker Registry
-        run: echo "${{env.REGISTRY_PASS}}" | docker login ${{env.DOCKER_REGISTRY}} -u "${{env.REGISTRY_USER}}" --password-stdin
+        run: echo "${{env.DOCKER_REGISTRY_PASS}}" | docker login ${{env.DOCKER_REGISTRY}} -u "${{env.DOCKER_REGISTRY_USER}}" --password-stdin
 
       - name: Push Docker image
-        run: docker push ${{env.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{env.IMAGE_TAG}}
+        run: docker push ${{env.DOCKER_IMAGE}}
 
   Clean_Up:
     runs-on: build
     needs: Push_Image_Internal
-    env:
-      IMAGE_TAG: latest
-      DOCKER_REGISTRY: ${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}
     steps:
+      - name: Set env
+        run: |
+          echo "DOCKER_IMAGE=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{needs.Get_Credentials.outputs.IMAGE_TAG}}" >> $GITHUB_ENV
+                    
+          echo "DOCKER_REGISTRY=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}" >> $GITHUB_ENV
+
       - name: Cleanup Trivy DB
         run: rm -rf ~/.cache/trivy
 
@@ -105,7 +115,7 @@ jobs:
         run: docker logout ${{secrets.DOCKER_REGISTRY}} || true
 
       - name: Remove Docker Image
-        run: docker rmi -f ${{env.DOCKER_REGISTRY}}/${{secrets.DOCKER_REPO}}:${{env.IMAGE_TAG}} || true
+        run: docker rmi -f ${{env.DOCKER_IMAGE}} || true
 
       - name: Clean up workspace
         if: always()
