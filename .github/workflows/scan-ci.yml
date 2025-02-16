@@ -44,7 +44,7 @@ jobs:
           echo "JFROG_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_OUTPUT
           echo "JFROG_PATH=$(echo $SECRETS | jq -r '.path')" >> $GITHUB_OUTPUT
 
-    - name: Get Tokens and keys
+      - name: Get Tokens and keys
         id: get-tokens
         run: |
           SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.TOKENS_CREDENTIAL_PATH}} | jq -r '.data.data')
@@ -69,7 +69,7 @@ jobs:
           echo "SONAR_HOST=${{needs.Get_Credentials.outputs.SONAR_HOST}}" >> $GITHUB_ENV
 
           echo "SONAR_TOKEN=${{needs.Get_Credentials.outputs.SONAR_TOKEN}}" >> $GITHUB_ENV
-          
+
           echo "SONAR_PROJECTKEY=${{needs.Get_Credentials.outputs.SONAR_PROJECTKEY}}" >> $GITHUB_ENV
 
       - name: SonarQube Scan 
