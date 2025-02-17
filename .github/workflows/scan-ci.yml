@@ -42,7 +42,7 @@ jobs:
           SECRETS=$(curl -s --header "X-Vault-Token: ${{secrets.VAULT_TOKEN}}" --request GET ${{secrets.JFROG_CREDENTIAL_PATH}} | jq -r '.data.data')
           echo "JFROG_USER=$(echo $SECRETS | jq -r '.user')" >> $GITHUB_OUTPUT
           echo "JFROG_PASS=$(echo $SECRETS | jq -r '.pass')" >> $GITHUB_OUTPUT
-          echo "JFROG_PATH=$(echo $SECRETS | jq -r '.path')" >> $GITHUB_OUTPUT
+          echo "JFROG_PATH=$(echo $SECRETS | jq -r '.path_fe')" >> $GITHUB_OUTPUT
 
       - name: Get Tokens and keys
         id: get-tokens

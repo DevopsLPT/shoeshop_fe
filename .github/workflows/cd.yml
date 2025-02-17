@@ -8,7 +8,7 @@ on:
 
 jobs:
   Get_Credentials:
-    runs-on: build
+    runs-on: shoeshop-frontend
     outputs:
       DOCKER_REGISTRY_USER: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY_USER }}
       DOCKER_REGISTRY_PASS: ${{ steps.get-docker-credentials.outputs.DOCKER_REGISTRY_PASS }}
@@ -26,8 +26,8 @@ jobs:
           echo "DOCKER_REPO=$(echo $SECRETS | jq -r '.fe_repo')" >> $GITHUB_OUTPUT
 
 
-  deploy:
-    runs-on: build
+  Deploy:
+    runs-on: shoeshop-frontend
     env:
       CONTAINER_NAME: shoeshop_fe
       IMAGE_OLD_TAG: latest
@@ -58,3 +58,14 @@ jobs:
         
       - name: Run container
         run: docker run --name ${{ env.CONTAINER_NAME }} -dp 3000:3000 ${{ env.IMAGE_NAME }}:${{ env.IMAGE_NEW_TAG }} 
+
+  Clean_Up:
+    runs-on: shoeshop-frontend
+    needs: Deploy
+    steps:
+      - name: Set env
+        run: |
+          echo "DOCKER_REGISTRY=${{needs.Get_Credentials.outputs.DOCKER_REGISTRY}}" >> $GITHUB_ENV
+
+      - name: Log out from Docker Registry
+        run: docker logout ${{env.DOCKER_REGISTRY}} || true
